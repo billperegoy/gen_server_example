@@ -1,15 +1,11 @@
 defmodule BatchQueue do
   use GenServer
 
-  def start_link() do
-    GenServer.start_link(BatchQueue, :queue.new())
-  end
-
   def init(queue) do
     {:ok, queue}
   end
 
-  def handle_cast({:push, item}, queue) do
+  def handle_cast({:add, item}, queue) do
     {:noreply, :queue.in(item, queue)}
   end
 
@@ -21,7 +17,7 @@ defmodule BatchQueue do
     {:reply, :queue.len(queue), queue}
   end
 
-  def handle_call(:pop, _from, queue) do
+  def handle_call(:fetch, _from, queue) do
     with {{:value, item}, new_queue} <- :queue.out(queue) do
       {:reply, item, new_queue}
     else
@@ -31,6 +27,10 @@ defmodule BatchQueue do
   end
 
   # Public API
+  def start_link() do
+    GenServer.start_link(__MODULE__, :queue.new())
+  end
+
   def add(pid, item) do
     GenServer.cast(pid, {:add, item})
   end
@@ -43,11 +43,7 @@ defmodule BatchQueue do
     GenServer.call(pid, :length)
   end
 
-  def push(pid, item) do
-    GenServer.cast(pid, {:push, item})
-  end
-
-  def pop(pid) do
-    GenServer.call(pid, :pop)
+  def fetch(pid) do
+    GenServer.call(pid, :fetch)
   end
 end
